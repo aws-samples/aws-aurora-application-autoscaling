@@ -1,0 +1,114 @@
+{   
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description":"Scheduled scaling for Aurora Readers Using AWS Application AutoScaling",
+    "Parameters": {
+        "AuroraCluster": {
+            "Type": "String",
+            "Description": "Enter the name of your Aurora Cluster"
+        },
+        "TimeZone": {
+            "Type": "String",
+            "Description": "Enter the timezone in Joda Format",
+            "Default": "Etc/GMT"
+        },
+        "ScaleUpActionName": {
+            "Type": "String",
+            "Description": "Uniqiue name for ScaleUp Action"
+        },
+        "ScaleUpTime": {
+            "Type": "String",
+            "Description": "Cron Expression for the Scaleup Time example cron(35 18 ? * * * )"
+        },
+        "MinimumReaderAtScaleUp": {
+            "Type": "Number",
+            "Description": "Minimum No of Readers Instance at ScaleUp Time",
+            "Default": 0,
+            "MinValue": 0,
+            "MaxValue": 15
+        },
+        "MaximumReaderAtScaleUp": {
+            "Type": "Number",
+            "Description": "Maximum No of Readers Instance at ScaleUp Time",
+            "Default": 0,
+            "MinValue": 0,
+            "MaxValue": 15
+        },
+        "ScaleDownActionName": {
+            "Type": "String",
+            "Description": "Uniqiue name for ScaleDown Action"
+        },
+        "ScaleDownTime": {
+            "Type": "String",
+            "Description": "Cron Expression for the Scaleup Down example cron(40 23 ? * * * )"
+        },
+        "MinimumReaderAtScaleDown": {
+            "Type": "Number",
+            "Description": "Minimum No of Readers Instance at ScaleDown Time",
+            "Default": 0,
+            "MinValue": 0,
+            "MaxValue": 15
+        },
+        "MaximumReaderAtScaleDown": {
+            "Type": "Number",
+            "Description": "Maximum No of Readers Instance at ScaleDown Time",
+            "Default": 0,
+            "MinValue": 0,
+            "MaxValue": 15
+        }
+    },
+    "Resources": {
+        "ScalableTarget": {
+            "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+            "Properties": {
+                "MaxCapacity": 0,
+                "MinCapacity": 0,
+                "RoleARN": {
+                    "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/appstream.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_AppStreamFleet"
+                },
+                "ServiceNamespace": "rds",
+                "ScalableDimension": "rds:cluster:ReadReplicaCount",
+                "ResourceId": { "Fn::Sub": ["cluster:${AuroraClusterName}",{"AuroraClusterName":{"Ref":"AuroraCluster"}}]},
+                "ScheduledActions": [
+                    {
+                        "ScalableTargetAction": {
+                            "MaxCapacity": {
+                                "Ref": "MaximumReaderAtScaleUp"
+                            },
+                            "MinCapacity": {
+                                "Ref": "MinimumReaderAtScaleUp"
+                            }
+                        },
+                        "Schedule": {
+                            "Ref": "ScaleUpTime"
+                        },
+                        "ScheduledActionName": {
+                            "Ref": "ScaleUpActionName"
+                        },
+                        "Timezone": {
+                            "Ref": "TimeZone"
+                        }
+                    },
+                    {
+                        "ScalableTargetAction": {
+                            "MaxCapacity": {
+                                "Ref": "MaximumReaderAtScaleDown"
+                            },
+                            "MinCapacity": {
+                                "Ref": "MinimumReaderAtScaleDown"
+                            }
+                        },
+                        "Schedule": {
+                            "Ref": "ScaleDownTime"
+                        },
+                        "ScheduledActionName": {
+                            "Ref": "ScaleDownActionName"
+                        },
+                        "Timezone": {
+                            "Ref": "TimeZone"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
